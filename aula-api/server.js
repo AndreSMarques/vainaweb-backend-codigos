@@ -19,6 +19,11 @@ function telefoneValido(telefone) {
   return regex.test(telefone);
 };
 
+function mensagemValida(mensagem) {
+  const regex = /^[\s\S]{0,500}$/;
+  return regex.test(mensagem);
+};
+
 
 function validarCadstro (req, res, next) {
   const {nome, email, telefone, mensagem} = req.body;
@@ -38,6 +43,12 @@ function validarCadstro (req, res, next) {
   if(!telefone || !telefoneValido(telefone)) {
     return res.status(400).json({
       error: 'telefone Inválido. Deve conter 11 numeros!'
+    });
+  }
+
+  if(!mensagem || !mensagemValida(mensagem)) {
+    return res.status(400).json({
+      error: 'Mensagem Inválido.'
     });
   }
 
