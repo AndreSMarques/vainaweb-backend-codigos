@@ -1,5 +1,7 @@
 const express = require('express');
-const pool =  require('./config/db')
+const pool =  require('./config/db');
+const validarUsuarios = require('./validacao/usuario');
+const validarPost = require('./validacao/post');
 
 const app = express();
 app.use(express.json());
@@ -39,7 +41,7 @@ app.get('/postagens', async(req, res) => {
   }
 });
 
-app.post("/posts", async (req, res) => {
+app.post("/posts", validarPost, async (req, res) => {
   try {
     const { titulo, conteudo, usuario_id } = req.body;
     const resultado = await pool.query(
@@ -96,6 +98,18 @@ app.delete("/post/:id", async (req, res) => {
   }
 })
 
-
+app.post("/usuarios", validarUsuarios, async (req, res) => {
+    try {
+        const { nome, email, senha } = req.body;
+        const resultado = await pool.query(`
+            INSERT INTO usuarios (nome, email, senha)
+            VALUES ($1, $2, $3
+            RETURNING *
+        `, [nome, email, senha]);
+        res.status(201).json({ mensagem: "Usuário criado com sucesso", usuario: resultado.rows[0] });
+    } catch (erro) {
+        res.status(500).json({ erro: "Erro ao criar usuário" });
+    }
+});
 
 module.exports = app;
