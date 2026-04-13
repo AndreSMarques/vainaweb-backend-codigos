@@ -5,16 +5,20 @@ const validarPost = require('./validacao/post');
 const jwt = require("jsonwebtoken");
 const auth = require("./auth/authLogin");
 const bcrypt = require("bcrypt");
+const cors = require("cors");
+const helmet = require("helmet");
 
 const app = express();
 app.use(express.json());
+app.use(helmet());
+app.use(cors());
 
 app.get('/', (req, res) => {
   res.send('<h1>Wellcome to Orkut2.0</h1>')
 });
 
 function formatarData(data){
-  return new Data(data).toLocaleString("pt-BR", {
+  return new Date(data).toLocaleString("pt-BR", {
     timeZone:"America/Bahia"
   });   
 }
@@ -44,7 +48,7 @@ app.get('/postagens', async(req, res) => {
   }
 });
 
-app.post("/posts", validarPost, async (req, res) => {
+app.post("/posts",auth, validarPost, async (req, res) => {
   try {
     const { titulo, conteudo, usuario_id } = req.body;
     const resultado = await pool.query(
@@ -66,7 +70,7 @@ app.post("/posts", validarPost, async (req, res) => {
   }
 });
 
-app.put("/post/:id", async (req, res) => {
+app.put("/post/:id", auth, validarPost, async (req, res) => {
   try{
     const { id } = req.params;
     const { titulo, conteudo } = req.body
@@ -84,7 +88,7 @@ app.put("/post/:id", async (req, res) => {
   }
 })
 
-app.delete("/post/:id", async (req, res) => {
+app.delete("/post/:id", auth, async (req, res) => {
   try{
     const { id } = req.params;
     const resultado = await pool.query(
@@ -102,18 +106,27 @@ app.delete("/post/:id", async (req, res) => {
 })
 
 app.post("/usuarios", validarUsuarios, async (req, res) => {
-    try {
-        const { nome, email, senha } = req.body;
-        const resultado = await pool.query(`
-            INSERT INTO usuarios (nome, email, senha)
-            VALUES ($1, $2, $3
-            RETURNING *
-        `, [nome, email, senha]);
-        res.status(201).json({ mensagem: "Usuário criado com sucesso", usuario: resultado.rows[0] });
-    } catch (erro) {
-        res.status(500).json({ erro: "Erro ao criar usuário" });
-    }
-});
+  try {
+    const {nome, email, senha} = req.body;
+
+    const senhaHash = await bcrypt.hash(senha, 10)
+
+    const resultado = await pool.query(`
+      INSERT INTO usuarios (nome, email, senha)
+      VALUES ($1, $2, $3)
+    `,
+    [nome, email, senhaHash]
+  );
+  res.status(201).json({
+    mensagem: "Usuário criado com sucesso",
+    usuario: resultado.rows[0]
+  })
+  } catch (erro) {
+    res.status(500).json({
+      erro: "Erro ao criar usuário"
+    })
+  }
+})
 
 app.get("/usuarios", async (req, res) => {
   try {

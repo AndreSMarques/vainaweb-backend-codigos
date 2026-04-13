@@ -20,3 +20,5 @@ const auth = (req, res, nexy) => {
     })
   }
 }
+
+module.exports = auth;
